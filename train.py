@@ -57,7 +57,7 @@ sample_text = [
     "Man dies of gunshot inside Akwa Ibom church, police begin probe",
     "Another win for Afrobeats, fans celebrate Davido’s Maryland show",
     "Three Ebonyi Police Officers Face Interrogation Over Alleged Baby Sale For N25Million",
-    "Local bakery launches new line of cupcakes"
+    "Six suspected cultists arrested in Anambra black spot raid"
 ]
 # %%
 # Make predictions
@@ -67,5 +67,12 @@ predictions = pipeline.predict(sample_text)
 for text, pred in zip(sample_text, predictions):
     label = "Crime" if pred == 1 else "Non-Crime"
     print(f"\"{text}\" → Prediction: {label}")
+
+# %%
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+model_name = "Jayywestty/bart-summarizer-epoch2"
+tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=False)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name, local_files_only=False)
 
 # %%
