@@ -4,7 +4,7 @@ import time
 
 # Page configuration
 st.set_page_config(
-    page_title="News Classifier & Summarizer", 
+    page_title="Newslytic App", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -35,8 +35,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown('<h1 class="main-header">📰 News Classifier & Summarizer</h1>', unsafe_allow_html=True)
-st.markdown("**Classify news headlines and generate intelligent summaries using AI**")
+st.markdown(
+    '<h1 class="main-header">📰 Newslytic</h1>', 
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<h3 class="main-header">Your AI-powered companion to classify news and create concise, easy-to-read summaries in seconds.</h3>', 
+    unsafe_allow_html=True
+)
+
 
 # API configuration
 API_URL = "http://127.0.0.1:8000"
