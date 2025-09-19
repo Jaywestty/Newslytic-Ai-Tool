@@ -121,7 +121,7 @@ def abstractive_summary(article: str, min_len: int = 50, max_len: int = 150) -> 
 
 # FastAPI Setup
 app = FastAPI(
-    title="News Classification + Summarization API",
+    title="Newslytic WEBAPP",
     description="API that classifies news headlines as crime/non-crime and provides abstractive summaries",
     version="1.0.0"
 )
