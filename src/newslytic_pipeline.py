@@ -1,0 +1,237 @@
+# src/inference.py
+#%%
+import os
+import re
+import logging
+from typing import Optional, Tuple, Dict, Any, List
+import joblib
+import torch
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+
+class NewslyticProcessor:
+    """
+    Class that encapsulates the headline classifier and the abstractive summarizer.
+    Instantiate once at app startup and reuse for every request.
+    """
+
+    def __init__(
+        self,
+        classifier_path: Optional[str] = None,
+        hf_model_name: str = "Jayywestty/bart-summarizer-epoch2",
+        device: Optional[str] = None,
+        classifier_local_files_only: bool = True,
+        hf_local_files_only: bool = True,
+    ):
+        """
+        Args:
+            classifier_path: Path to joblib classifier file. If None, tries a sensible default.
+            hf_model_name: Hugging Face repo id or local path for the BART summarizer.
+            device: e.g. "cuda" | "cpu". If None, auto-detects.
+            classifier_local_files_only: Try loading classifier from local files only (use False to force online).
+            hf_local_files_only: Try loading HF model/tokenizer from local cache only (fallback to online if False).
+        """
+        self.device = torch.device(device if device else ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.classifier_path = classifier_path or self._default_classifier_path()
+        self.hf_model_name = hf_model_name
+        self.classifier_local_files_only = classifier_local_files_only
+        self.hf_local_files_only = hf_local_files_only
+
+        # placeholders
+        self.classifier = None
+        self._has_predict_proba = False
+        self.tokenizer = None
+        self.summarizer = None
+
+        # load models now
+        self._load_classifier()
+        self._load_summarizer()
+
+        #label mapping
+        self.label_map = {0: "non-crime", 1: "crime"}
+
+
+    def _default_classifier_path(self) -> str:
+        # Default tries to load from a sibling Model folder (adjust if your layout differs)
+        base = os.path.dirname(os.path.dirname(__file__)) if os.path.dirname(__file__) else os.getcwd()
+        return os.path.join(base, "Model", "classifier_model_20251003_154212.pkl")
+
+    def _load_classifier(self):
+        """Load joblib classifier with error handling."""
+        try:
+            logger.info("Loading classifier from %s", self.classifier_path)
+            self.classifier = joblib.load(self.classifier_path)
+            self._has_predict_proba = hasattr(self.classifier, "predict_proba")
+            logger.info("✅ Headline classifier loaded (predict_proba=%s)", self._has_predict_proba)
+        except Exception as e:
+            logger.exception("Failed to load classifier: %s", e)
+            raise RuntimeError(f"Failed to load classifier at {self.classifier_path}: {e}")
+
+    def _load_summarizer(self):
+        """Load HF tokenizer and model (local cache first, then HF)."""
+        try:
+            logger.info("Loading summarizer tokenizer & model: %s (device=%s)", self.hf_model_name, self.device)
+            # try local cache first
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model_name, local_files_only=self.hf_local_files_only)
+                self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(self.hf_model_name, local_files_only=self.hf_local_files_only)
+                logger.info("✅ Summarizer loaded from local cache (or local path)")
+            except Exception as e_local:
+                # fallback to online if allowed
+                if self.hf_local_files_only:
+                    logger.warning("Local-only load failed for summarizer: %s", e_local)
+                    # try again allowing online
+                    self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model_name)
+                    self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(self.hf_model_name)
+                    logger.info("⬇️ Downloaded summarizer from Hugging Face")
+                else:
+                    # local_files_only was False; we still try online:
+                    self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model_name)
+                    self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(self.hf_model_name)
+                    logger.info("⬇️ Downloaded summarizer from Hugging Face")
+            # move model to device
+            self.summarizer.to(self.device)
+            self.summarizer.eval()
+            logger.info("✅ Summarizer ready on %s", self.device)
+        except Exception as e:
+            logger.exception("Failed to load summarizer: %s", e)
+            raise RuntimeError(f"Failed to load summarizer: {e}")
+
+   
+    # Text cleaning utilities
+    @staticmethod
+    def normalize_raw_text(text: str) -> str:
+        if not text:
+            return ""
+        # normalize smart quotes and dashes; collapse whitespace
+        text = text.replace("“", '"').replace("”", '"').replace("’", "'").replace("‘", "'")
+        text = text.replace("–", "-").replace("—", "-")
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    def clean_and_merge_article(self, article: str) -> str:
+        """Basic cleanup and merging of sentences to prepare for summarization."""
+        if not article:
+            return ""
+        article = self.normalize_raw_text(article)
+        # remove weird control characters but keep punctuation
+        article = re.sub(r"[^\x00-\x7F]+", " ", article)
+        # remove stray spaces before punctuation
+        article = article.replace(" ,", ",").replace(" .", ".").replace(" !", "!").replace(" ?", "?")
+        # collapse multiple newlines and spaces
+        article = re.sub(r"\s+", " ", article).strip()
+        # optionally split/merge sentences intelligently (simple approach)
+        sentences = re.split(r"(?<=[.!?])\s+", article)
+        merged = " ".join(s.strip() for s in sentences if s.strip())
+        return merged
+
+    # Classification
+    def classify_headline(self, headline: str) -> Tuple[Any, Optional[float]]:
+        """
+        Returns: (predicted_label, confidence [0..1] or None)
+        predicted_label is whatever classifier.predict returns (often 0/1 or string labels)
+        """
+        if not headline or not headline.strip():
+            raise ValueError("Headline cannot be empty")
+
+        try:
+            pred = self.classifier.predict([headline])[0]
+            pred_label = self.label_map.get(int(pred), str(pred))  # convert 0/1 → crime/non-crime
+            confidence = None
+            if self._has_predict_proba:
+                try:
+                    proba = self.classifier.predict_proba([headline])[0]
+                    confidence = float(max(proba))
+                except Exception:
+                    confidence = None
+            return pred_label, confidence
+        except Exception as e:
+            logger.exception("Headline classification failed: %s", e)
+            raise
+    
+    # Summarization
+    def abstractive_summary(self, article: str, min_len: int = 50, max_len: int = 150) -> str:
+        """Run the model.generate to produce an abstractive summary."""
+        if not article or not article.strip():
+            return ""
+
+        inputs = self.tokenizer(
+            article,
+            return_tensors="pt",
+            max_length=1024,
+            truncation=True,
+        )
+        # move tensors to device
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+
+        try:
+            with torch.no_grad():
+                summary_ids = self.summarizer.generate(
+                    **inputs,
+                    max_length=max_len,
+                    min_length=min_len,
+                    length_penalty=2.0,
+                    num_beams=4,
+                    early_stopping=True,
+                    no_repeat_ngram_size=3,
+                )
+            summary = self.tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+            # post-clean
+            summary = re.sub(r"\s+", " ", summary).strip()
+            return summary
+        except Exception as e:
+            logger.exception("Summarization failed: %s", e)
+            # fallback: return truncated cleaned article
+            return (article[: max_len * 2] + "...") if len(article) > max_len * 2 else article
+
+    
+    # Combined workflow
+    def process_single(
+        self, headline: str, article: str, min_len: int = 50, max_len: int = 150
+    ) -> Dict[str, Any]:
+        """
+        Full pipeline: classify headline and summarize article.
+        Returns a dict with keys: headline, predicted_class, confidence, summary, status
+        """
+        if not headline or not article:
+            raise ValueError("Headline and article are required")
+
+        # 1. classify
+        pred_label, confidence = self.classify_headline(headline)
+
+        # convert confidence to percentage string if present
+        confidence_str = f"{confidence:.2%}" if (confidence is not None) else "N/A"
+
+        # 2. clean article
+        cleaned = self.clean_and_merge_article(article)
+        if not cleaned or len(cleaned) < 20:
+            raise ValueError("Article too short or invalid after cleaning")
+
+        # 3. summarize
+        summary = self.abstractive_summary(cleaned, min_len=min_len, max_len=max_len)
+
+        # return structured result
+        return {
+            "headline": headline,
+            "predicted_class": pred_label,
+            "confidence": confidence_str,
+            "summary": summary,
+            "status": "success",
+        }
+
+    # optional: batch processing convenience method
+    def process_batch(self, headlines: List[str], articles: List[str], min_len: int = 50, max_len: int = 150) -> List[Dict[str, Any]]:
+        if len(headlines) != len(articles):
+            raise ValueError("headlines and articles must have same length")
+        results = []
+        for h, a in zip(headlines, articles):
+            try:
+                results.append(self.process(h, a, min_len=min_len, max_len=max_len))
+            except Exception as e:
+                logger.error("process failed for headline=%s: %s", h, e)
+                results.append({"headline": h, "error": str(e)})
+        return results
+
