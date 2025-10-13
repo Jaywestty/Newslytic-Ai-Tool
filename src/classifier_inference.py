@@ -11,9 +11,9 @@ print("✅ Headline Classifier model loaded successfully")
 # %%
 sample_text = [
     "Man dies of gunshot inside Akwa Ibom church, police begin probe",
-    "Another win for Afrobeats, fans celebrate Davido’s Maryland show",
+    "Super Eagles arrive Uyo after aircraft scare",
     "Three Ebonyi Police Officers Face Interrogation Over Alleged Baby Sale For N25Million",
-    "Six suspected cultists arrested in Anambra black spot raid"
+    "Cop killed as soldiers, police clash in Bauchi"
 ]
 
 # %%
