@@ -3,7 +3,7 @@
 import os
 import re
 import logging
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Tuple, Dict, Any, List, Union
 import joblib
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -55,7 +55,7 @@ class NewslyticProcessor:
 
 
     def _default_classifier_path(self) -> str:
-        # Default tries to load from a sibling Model folder (adjust if your layout differs)
+        # Default tries to load from a sibling Model folder 
         base = os.path.dirname(os.path.dirname(__file__)) if os.path.dirname(__file__) else os.getcwd()
         return os.path.join(base, "Model", "classifier_model_20251003_154212.pkl")
 
@@ -221,17 +221,64 @@ class NewslyticProcessor:
             "summary": summary,
             "status": "success",
         }
+    def process(
+        self, headlines: Union[str, List[str]], articles: Union[str, List[str]], min_len: int = 50, max_len: int = 150
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        Automatically handles both single and batch inputs.
+        - If given strings -> processes one article.
+        - If given lists -> processes each pair in batch.
+        """
+        # Single input
+        if isinstance(headlines, str) and isinstance(articles, str):
+            return self.process_single(headlines, articles, min_len, max_len)
 
-    # optional: batch processing convenience method
-    def process_batch(self, headlines: List[str], articles: List[str], min_len: int = 50, max_len: int = 150) -> List[Dict[str, Any]]:
-        if len(headlines) != len(articles):
-            raise ValueError("headlines and articles must have same length")
-        results = []
-        for h, a in zip(headlines, articles):
-            try:
-                results.append(self.process(h, a, min_len=min_len, max_len=max_len))
-            except Exception as e:
-                logger.error("process failed for headline=%s: %s", h, e)
-                results.append({"headline": h, "error": str(e)})
-        return results
+        # Batch input
+        elif isinstance(headlines, list) and isinstance(articles, list):
+            results = []
+            for h, a in zip(headlines, articles):
+                try:
+                    result = self.process_single(h, a, min_len, max_len)
+                    results.append(result)
+                except Exception as e:
+                    logger.error(f"❌ Error processing article: {e}")
+                    results.append({
+                        "headline": h,
+                        "error": str(e),
+                        "status": "failed"
+                    })
+            return results
 
+        # Mismatched types
+        else:
+            raise ValueError("headline and article must both be strings or both be lists")
+
+#%% TEST WORKFLOW
+if __name__ == "__main__":
+    processor = NewslyticProcessor()
+
+    headline = "Nigeria’s Central Bank Introduces New Policy to Boost Small Business Loans"
+    article = """The Central Bank of Nigeria has announced a new initiative aimed at increasing access to affordable credit for small and medium-sized enterprises. The programme will provide low-interest loans and technical support to help entrepreneurs grow their businesses and stimulate the economy."""
+
+    results = processor.process_single(headline, article)
+    print(results)
+
+# %%
+# Test batch workflow
+if __name__ == "__main__":
+    processor = NewslyticProcessor()
+
+    headlines = [
+        "Police arrest two suspects in Lagos robbery case",
+        "Lagos Launches Free Coding Bootcamp for 5,000 Youths"
+    ]
+    articles = [
+        """The Lagos State Police Command has arrested two men suspected of involvement in a recent robbery incident at a local market.""",
+        """The Lagos State Government has launched a free coding bootcamp aimed at training 5,000 youths in software development, data analytics, and product design. The initiative is part of the state’s digital economy strategy to empower young people and reduce unemployment."""
+    ]
+
+    results = processor.process(headlines, articles)
+    for r in results:
+        print(r)
+
+# %%
