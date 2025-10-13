@@ -1,197 +1,149 @@
 import streamlit as st
-import requests
-import time
+from utils.api_client import process_news, classify_headline, summarize_article, health_check
 
-# Page configuration
+# --- CONSTANTS ---
+# Fixed summary lengths for the API calls (used to replace the removed sliders)
+DEFAULT_MIN_LEN = 50
+DEFAULT_MAX_LEN = 150
+
+# -----------------------------
+# PAGE CONFIGURATION
+# -----------------------------
 st.set_page_config(
-    page_title="Newslytic App", 
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    page_title="Newslytic — Intelligent News Analysis",
+    page_icon="🗞️",
+    layout="wide"
 )
 
-# Custom CSS for better styling
+# Apply custom styles for better visual appeal
 st.markdown("""
 <style>
-    .main-header {
-        text-align: center;
-        color: #1f77b4;
-        margin-bottom: 2rem;
+    .big-font {
+        font-size:20px !important;
+        font-weight: bold;
     }
-    .result-box {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #e0e0e0;
-        background-color: #f8f9fa;
-    }
-    .classification-crime {
-        background-color: #ffebee;
-        border-left: 4px solid #f44336;
-    }
-    .classification-non-crime {
-        background-color: #e8f5e8;
-        border-left: 4px solid #4caf50;
-    }
+    /* Hide the default Streamlit footer */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown(
-    '<h1 class="main-header">📰 Newslytic</h1>', 
-    unsafe_allow_html=True
-)
 
-st.markdown(
-    '<h3 class="main-header">Your AI-powered companion to classify news and create concise, easy-to-read summaries in seconds.</h3>', 
-    unsafe_allow_html=True
-)
+# -----------------------------
+# SIDEBAR / SETTINGS (Now Collapsible)
+# -----------------------------
+st.sidebar.header("⚙️ App Configuration")
 
+# 1. Collapsible Settings Section (for Analysis Mode)
+with st.sidebar.expander("🔬 Analysis Settings", expanded=True):
+    # Keep the mode selection
+    mode = st.radio(
+        "Select Processing Mode",
+        ["Full Process (Classify + Summarize)", "Classify Only", "Summarize Only"],
+        index=0, # Default to Full Process
+    )
+    # Min/Max Summary Length sliders are removed from the UI.
 
-# API configuration
-API_URL = "http://127.0.0.1:8000"
+st.sidebar.markdown("---")
 
-# Sidebar for configuration (optional)
-with st.sidebar:
-    st.header("⚙️ Settings")
-    api_url = st.text_input("API URL", value=API_URL, help="FastAPI backend URL")
-    st.markdown("---")
-    st.markdown("### About")
-    st.info("This app uses a Bernoulli classifier for crime detection and BART for summarization.")
-
-# Main input section
-st.header("📝 Input Your News Article")
-
-headline = st.text_input(
-    "📄 Enter News Headline", 
-    placeholder="e.g., Local bank robbed in downtown area...",
-    help="Enter the main headline of your news article"
-)
-
-article = st.text_area(
-    "📰 Paste Full Article", 
-    height=250,
-    placeholder="Paste the complete news article content here...",
-    help="Paste the full body of the news article for summarization"
-)
-
-# Process button with better spacing
-st.markdown("---")
-process_col1, process_col2, process_col3 = st.columns([1, 2, 1])
-with process_col2:
-    process_button = st.button("🚀 Process Article", type="primary", use_container_width=True)
-
-# Processing logic
-if process_button:
-    if headline.strip() and article.strip():
-        # Input validation
-        if len(headline.strip()) < 5:
-            st.warning("⚠️ Headline seems too short. Please enter a meaningful headline.")
-        elif len(article.strip()) < 50:
-            st.warning("⚠️ Article seems too short. Please enter a complete article.")
-        else:
-            # Show processing indicator
-            with st.spinner("🔄 Processing your article... This may take a few seconds."):
-                payload = {
-                    "headline": headline.strip(),
-                    "article": article.strip()
-                }
-
-                try:
-                    # Make API request
-                    response = requests.post(f"{api_url}/process", json=payload, timeout=30)
-
-                    if response.status_code == 200:
-                        result = response.json()
-                        
-                        # Success message
-                        st.success("✅ Analysis Complete!")
-                        
-                        # Results section
-                        st.markdown("---")
-                        st.header("📊 Results")
-
-                        # Classification and Summary in columns
-                        result_col1, result_col2 = st.columns([1, 2])
-
-                        with result_col1:
-                            st.subheader("🏷️ Classification")
-                            
-                            # Style based on classification result
-                            classification = result['predicted_class']
-                            confidence = result.get('confidence', 'N/A')
-                            
-                            if 'crime' in classification.lower():
-                                class_style = "classification-crime"
-                                class_emoji = "🚨"
-                            else:
-                                class_style = "classification-non-crime" 
-                                class_emoji = "✅"
-                            
-                            st.markdown(f"""
-                            <div class="result-box {class_style}">
-                                <h3>{class_emoji} {classification}</h3>
-                                <p><strong>Confidence:</strong> {confidence}</p>
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                        with result_col2:
-                            st.subheader("📄 Summary")
-                            summary = result['summary']
-                            
-                            st.markdown(f"""
-                            <div class="result-box">
-                                <p style="font-size: 1.1em; line-height: 1.6;">{summary}</p>
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                        # Additional info section
-                        with st.expander("📈 Processing Details"):
-                            st.json({
-                                "Original Headline": result['headline'],
-                                "Classification": result['predicted_class'],
-                                "Confidence": confidence,
-                                "Processing Status": result.get('status', 'success'),
-                                "Original Article Length": f"{len(article)} characters",
-                                "Summary Length": f"{len(summary)} characters"
-                            })
-
-                    else:
-                        st.error(f"❌ API Error {response.status_code}")
-                        try:
-                            error_detail = response.json().get('detail', 'Unknown error')
-                            st.error(f"Details: {error_detail}")
-                        except:
-                            st.error(f"Response: {response.text}")
-                            
-                except requests.exceptions.Timeout:
-                    st.error("⏰ Request timed out. The API might be processing a large article.")
-                except requests.exceptions.ConnectionError:
-                    st.error("🔌 Cannot connect to the API. Make sure the FastAPI server is running.")
-                    st.info("To start the server, run: `python your_api_file.py`")
-                except Exception as e:
-                    st.error(f"❌ Unexpected error: {str(e)}")
-
-    else:
-        st.warning("⚠️ Please enter both a headline and article before processing.")
-
-# Footer with example
-st.markdown("---")
-with st.expander("💡 Example Usage"):
-    st.markdown("""
-    **Sample Headline:** `Local bank robbed in downtown area, suspect still at large`
-    
-    **Sample Article:** `Police are investigating a bank robbery that occurred this morning at First National Bank on Main Street. The suspect, described as a male in his 30s wearing a black hoodie, demanded cash from tellers before fleeing on foot. No injuries were reported, but the investigation is ongoing. Police are asking anyone with information to come forward.`
-    """)
-
-# API status check
-if st.checkbox("🔍 Check API Status"):
+# 2. API Health Check Status
+if st.sidebar.button("🔌 Check API Status"):
     try:
-        health_response = requests.get(f"{api_url}/health", timeout=5)
-        if health_response.status_code == 200:
-            health_data = health_response.json()
-            st.success("✅ API is healthy and ready")
-            st.json(health_data)
-        else:
-            st.warning("⚠️ API is running but might have issues")
-    except:
-        st.error("❌ API is not accessible")
-        st.info("Make sure your FastAPI server is running on the specified URL.")
+        status = health_check()
+        st.sidebar.success(f"✅ API is **{status['status'].upper()}** on **{status['device']}**")
+    except Exception as e:
+        st.sidebar.error(f"❌ API Unreachable. Error: {e}")
+
+# -----------------------------
+# MAIN PAGE (Beautification)
+# -----------------------------
+st.title("📰 Newslytic — Intelligent News Analysis")
+st.markdown("""
+Analyze news content by **classifying headlines** (Crime or Non-Crime) and generating a **concise summary**.
+""")
+
+# Input Container
+with st.container(border=True):
+    st.markdown('<p class="big-font">Input Content</p>', unsafe_allow_html=True)
+    
+    # Using specific labels for better accessibility, though keeping the placeholder visual focus
+    headline = st.text_input("Headline", placeholder="e.g. Nigeria’s Central Bank Introduces New Policy...", key="headline_input")
+    article = st.text_area("Full Article", height=250, placeholder="Paste the full article text here...", key="article_input")
+
+
+if st.button("🚀 Run Newslytic Analysis", type="primary", use_container_width=True):
+    
+    # -----------------------------
+    # VALIDATION
+    # -----------------------------
+    if not headline.strip() and mode != "Summarize Only":
+        st.error("🛑 Please enter a headline when not in 'Summarize Only' mode.")
+        st.stop()
+    if not article.strip() and mode != "Classify Only":
+        st.error("🛑 Please enter the article body when not in 'Classify Only' mode.")
+        st.stop()
+        
+    # -----------------------------
+    # PROCESSING LOGIC
+    # -----------------------------
+    try:
+        with st.spinner(f"Processing in **{mode}** mode... ⏳"):
+            
+            st.markdown("## ✨ Analysis Results")
+            
+            if mode == "Full Process (Classify + Summarize)":
+                # Use hardcoded lengths
+                result = process_news(headline, article, DEFAULT_MIN_LEN, DEFAULT_MAX_LEN)
+                data = result["results"]
+                
+                # Use columns to neatly separate classification and summary
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    st.success("✅ Classification & Summarization Complete!")
+                    # 3. Rename Predicted Class to Headline Type. 4. Hide Confidence.
+                    st.metric(label="Headline Type", value=data['predicted_class'].capitalize())
+                    st.caption(f"Classification based on the headline.")
+                
+                with col2:
+                    st.subheader("✂️ Article Summary")
+                    st.info(data["summary"])
+
+
+            elif mode == "Classify Only":
+                result = classify_headline(headline)
+                
+                st.success("✅ Classification Complete!")
+                
+                # 3. Rename Predicted Class to Headline Type. 4. Hide Confidence.
+                st.metric(label="Headline Type", value=result['predicted_class'].capitalize())
+                st.caption("Classification based on the headline.")
+
+
+            elif mode == "Summarize Only":
+                # Use hardcoded lengths
+                result = summarize_article(article, DEFAULT_MIN_LEN, DEFAULT_MAX_LEN)
+                
+                st.success("✅ Summarization Complete!")
+                
+                st.markdown("### ✂️ Article Summary")
+                st.info(result["summary"])
+                
+                # Displaying summary length information nicely
+                col_len1, col_len2, col_len3 = st.columns(3)
+                
+                original_len = int(result.get('article_length', 1))
+                summary_len = int(result.get('summary_length', 1))
+                
+                reduction = f"{100 - (summary_len / original_len * 100):.1f}%" if original_len > 0 else "0%"
+
+                col_len1.metric("Original Length (words)", original_len)
+                col_len2.metric("Summary Length (words)", summary_len)
+                col_len3.metric("Length Reduction", reduction)
+
+    except Exception as e:
+        # Generic error handling for API issues
+        st.error(f"⚠️ An API error occurred during processing. Please check the API status in the sidebar. Details: {e}")
+
+st.markdown("---")
+st.markdown("<sub>*Newslytic utilizes an external API for AI classification and summarization. Fixed summary length range: {DEFAULT_MIN_LEN}-{DEFAULT_MAX_LEN} words.*</sub>", unsafe_allow_html=True)
