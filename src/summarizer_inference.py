@@ -47,36 +47,27 @@ def clean_and_merge_article(article):
     return merged.strip() + "."
 
 article = """
-The Vice Chancellor, Federal University of Technology and Environmental Sciences, Iyin Ekiti, Prof. Gbenga Aribisala, has said that the new institution will begin the admission process in September.
+Nigeria’s Super Eagles have arrived safely in Uyo, Akwa Ibom State, following an unexpected delay to their flight from South Africa caused by a technical fault, PUNCH Online reports.
 
-Aribisala said that the admission process would follow the National Universities Commission Resource Verification exercise taking place soon in the university.
+The team, who are preparing for their decisive 2026 FIFA World Cup qualifier against Benin Republic on Tuesday, touched down at the Victor Attah International Airport, Uyo, at 8:05 am on Sunday, according to team media officer Promise Efoghe.
 
-The VC, who spoke in Ado Ekiti on Sunday at a reception to celebrate the 90th birthday of his mother, Deaconess Felicia Aribisala, also canvassed support from well-meaning Nigerians to the institution, saying, “A technology-based institution of this nature is capital-intensive”.
+“Finally, Super Eagles arrive in Uyo, Akwa Ibom. The team touched down at 8.05 a.m. Sunday morning,” Efoghe confirmed in a statement issued to the media.
 
-He said, “The NUC is coming for Resource Verification of all the 36 programmes that we are trying to offer. As soon as they come, by the special grace of God, we have provided those things that will be needed.
-“We have provided a modern laboratory for all the programmes. We have a library now. We have classrooms fixed.
+A video later released by the team’s media department showed players and officials disembarking from the ValueJet aircraft, signalling the end of a tense and delayed journey that had begun in Polokwane, South Africa.The Super Eagles had departed Polokwane late on Saturday, shortly after their match preparations in South Africa. However, what was meant to be a routine journey turned anxious when the ValueJet aircraft, which had earlier stopped in Luanda, Angola, for refuelling, developed a technical fault mid-air.
 
-“We have offices and furniture fixed. We have all of those things. So we are very confident we are going to scale through.
+About 25 minutes after take-off, the pilot made an emergency U-turn back to Luanda after a loud crack appeared on the aircraft’s windscreen.
 
-“By the time we now scale through, by the special grace of God, by September this year, we are going to ask those who are interested in our university to do Change of University, and admission will begin. That is the icing. And after that, recruitment of staff will just follow”.
+The Nigeria Football Federation confirmed in an official statement that the cracked windscreen forced the flight to return to Luanda, where all players, officials, and accompanying government delegates safely disembarked.The federation noted that the incident occurred after a routine refuelling stop, with the pilot “guiding the airplane safely back to the airport in Luanda”.
 
-The VC, who said that funding of education should not be left to the government alone, said, “Universities need a lot of funding. Funding is a major challenge. You have to provide facilities and all of those things.
-“So, as I speak to you, we (FUTES) do not have enough funds. That’s why we keep appealing and going to people because the government cannot do it all alone. We have been visiting some people who are public-spirited, people who like education, tertiary education.
+Following the incident, the NFF disclosed that ValueJet Airline worked closely with relevant Nigerian government authorities, including the Ministers of Aviation and Foreign Affairs, and the Chief of Staff to the President, to secure flight permits for a replacement aircraft to continue the journey to Nigeria.
 
-“If we have people who want to donate buildings, we are going to name such after them; people who want to give scholarships; people who want to build hostels in such a manner that it is their own and they will take rent and all of those things.
+“The ValueJet Airline and the relevant Federal Government of Nigeria authorities are working assiduously to get the necessary overflying and landing permits for another aircraft to fly from Lagos, pick the delegation in Luanda, and fly them to Uyo,” the statement read.
 
-“I think the funding is crucial because if you look at the nature of our university, University of Technology and Environmental Sciences, it is capital-intensive, it is technology-based.
+The replacement aircraft eventually completed the journey on Sunday morning, ending nearly 12 hours of travel disruption for the team.
 
-“It means we need a lot of equipment. As I said, the government cannot do everything. So we need help at this time financially,” the VC said.
+Eric Chelle’s men will now turn their attention to the all-important World Cup qualifier against the Benin Republic.
 
-Aribisala disclosed that the land issue, which could have been a challenge to the university, had been resolved amicably with an agreement made with the concerned families.
-
-“As I speak to you now, it has been resolved. The 200 hectares that have been donated to the university are very intact.
-
-“There has been an agreement. The community and government will also pay some compensation to the families.
-
-“So they are now at peace. The community is not trying to force the land. I think that was the kind of misconception that happened at the time,” the Vice Chancellor said.
-"""
+The match, scheduled for Tuesday at the Godswill Akpabio International Stadium, is a crucial one for Nigeria, who are aiming to seal qualification for the 2026 FIFA World Cup after a challenging qualifying campaign."""
 
 clean = clean_and_merge_article(article)
 print(clean)
