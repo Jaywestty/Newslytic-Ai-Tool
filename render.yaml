@@ -1,9 +1,6 @@
 services:
   - type: web
     name: newslytic-api
-    env: python
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn apis.Newslytic_app:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
+    startCommand: python -m uvicorn apis.Newslytic_app:app --host 0.0.0.0 --port $PORT
