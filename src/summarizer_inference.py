@@ -71,4 +71,3 @@ The match, scheduled for Tuesday at the Godswill Akpabio International Stadium, 
 
 clean = clean_and_merge_article(article)
 print(clean)
-# %%
