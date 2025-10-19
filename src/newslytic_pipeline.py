@@ -1,5 +1,5 @@
-# src/inference.py
 #%%
+# src/newslytic_pipeline.py
 import os
 import re
 import logging
@@ -23,22 +23,16 @@ class NewslyticProcessor:
         classifier_path: Optional[str] = None,
         hf_model_name: str = "Jayywestty/bart-summarizer-epoch2",
         device: Optional[str] = None,
-        classifier_local_files_only: bool = True,
-        hf_local_files_only: bool = True,
     ):
         """
         Args:
             classifier_path: Path to joblib classifier file. If None, tries a sensible default.
             hf_model_name: Hugging Face repo id or local path for the BART summarizer.
             device: e.g. "cuda" | "cpu". If None, auto-detects.
-            classifier_local_files_only: Try loading classifier from local files only (use False to force online).
-            hf_local_files_only: Try loading HF model/tokenizer from local cache only (fallback to online if False).
         """
         self.device = torch.device(device if device else ("cuda" if torch.cuda.is_available() else "cpu"))
         self.classifier_path = classifier_path or self._default_classifier_path()
         self.hf_model_name = hf_model_name
-        self.classifier_local_files_only = classifier_local_files_only
-        self.hf_local_files_only = hf_local_files_only
 
         # placeholders
         self.classifier = None
@@ -71,33 +65,34 @@ class NewslyticProcessor:
             raise RuntimeError(f"Failed to load classifier at {self.classifier_path}: {e}")
 
     def _load_summarizer(self):
-        """Load HF tokenizer and model (local cache first, then HF)."""
+        """Load HF tokenizer and model - tries cache first, downloads if needed."""
         try:
-            logger.info("Loading summarizer tokenizer & model: %s (device=%s)", self.hf_model_name, self.device)
-            # try local cache first
+            logger.info("Loading summarizer: %s (device=%s)", self.hf_model_name, self.device)
+            
+            # Try local cache first, fallback to download
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model_name, local_files_only=self.hf_local_files_only)
-                self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(self.hf_model_name, local_files_only=self.hf_local_files_only)
-                logger.info("✅ Summarizer loaded from local cache (or local path)")
-            except Exception as e_local:
-                # fallback to online if allowed
-                if self.hf_local_files_only:
-                    logger.warning("Local-only load failed for summarizer: %s", e_local)
-                    # try again allowing online
-                    self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model_name)
-                    self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(self.hf_model_name)
-                    logger.info("⬇️ Downloaded summarizer from Hugging Face")
-                else:
-                    # local_files_only was False; we still try online:
-                    self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model_name)
-                    self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(self.hf_model_name)
-                    logger.info("⬇️ Downloaded summarizer from Hugging Face")
-            # move model to device
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    self.hf_model_name, 
+                    local_files_only=True
+                )
+                self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(
+                    self.hf_model_name, 
+                    local_files_only=True
+                )
+                logger.info("✅ Summarizer loaded from cache")
+            except (OSError, ValueError, Exception):
+                logger.info("📥 Cache miss - downloading from HuggingFace (this may take a few minutes)...")
+                self.tokenizer = AutoTokenizer.from_pretrained(self.hf_model_name)
+                self.summarizer = AutoModelForSeq2SeqLM.from_pretrained(self.hf_model_name)
+                logger.info("✅ Summarizer downloaded and cached successfully")
+            
+            # Move model to device and set to eval mode
             self.summarizer.to(self.device)
             self.summarizer.eval()
             logger.info("✅ Summarizer ready on %s", self.device)
+            
         except Exception as e:
-            logger.exception("Failed to load summarizer: %s", e)
+            logger.exception("❌ Failed to load summarizer: %s", e)
             raise RuntimeError(f"Failed to load summarizer: {e}")
 
    
@@ -107,7 +102,7 @@ class NewslyticProcessor:
         if not text:
             return ""
         # normalize smart quotes and dashes; collapse whitespace
-        text = text.replace("“", '"').replace("”", '"').replace("’", "'").replace("‘", "'")
+        text = text.replace(""", '"').replace(""", '"').replace("'", "'").replace("'", "'")
         text = text.replace("–", "-").replace("—", "-")
         text = re.sub(r"\s+", " ", text).strip()
         return text
@@ -221,6 +216,7 @@ class NewslyticProcessor:
             "summary": summary,
             "status": "success",
         }
+    
     def process(
         self, headlines: Union[str, List[str]], articles: Union[str, List[str]], min_len: int = 50, max_len: int = 150
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
@@ -253,32 +249,13 @@ class NewslyticProcessor:
         else:
             raise ValueError("headline and article must both be strings or both be lists")
 
-#%% TEST WORKFLOW
+
 if __name__ == "__main__":
     processor = NewslyticProcessor()
 
-    headline = "Nigeria’s Central Bank Introduces New Policy to Boost Small Business Loans"
+    headline = "Nigeria's Central Bank Introduces New Policy to Boost Small Business Loans"
     article = """The Central Bank of Nigeria has announced a new initiative aimed at increasing access to affordable credit for small and medium-sized enterprises. The programme will provide low-interest loans and technical support to help entrepreneurs grow their businesses and stimulate the economy."""
 
     results = processor.process_single(headline, article)
     print(results)
-
-# %%
-# Test batch workflow
-if __name__ == "__main__":
-    processor = NewslyticProcessor()
-
-    headlines = [
-        "Police arrest two suspects in Lagos robbery case",
-        "Lagos Launches Free Coding Bootcamp for 5,000 Youths"
-    ]
-    articles = [
-        """The Lagos State Police Command has arrested two men suspected of involvement in a recent robbery incident at a local market.""",
-        """The Lagos State Government has launched a free coding bootcamp aimed at training 5,000 youths in software development, data analytics, and product design. The initiative is part of the state’s digital economy strategy to empower young people and reduce unemployment."""
-    ]
-
-    results = processor.process(headlines, articles)
-    for r in results:
-        print(r)
-
 # %%
