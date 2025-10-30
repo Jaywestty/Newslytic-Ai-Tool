@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Dict, Any, List, Union
 import joblib
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from newspaper import Article
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -182,7 +183,28 @@ class NewslyticProcessor:
             # fallback: return truncated cleaned article
             return (article[: max_len * 2] + "...") if len(article) > max_len * 2 else article
 
-    
+    # 🕸️  URL Extraction Utility
+    def extract_from_url(self, url: str) -> Tuple[str, str]:
+        """
+        Given a news article URL, downloads and extracts the headline and body text.
+        Returns (headline, article_body)
+        """
+        if not url or not url.strip():
+            raise ValueError("URL cannot be empty")
+
+        try:
+            art = Article(url)
+            art.download()
+            art.parse()
+            headline = self.normalize_raw_text(art.title)
+            article = self.clean_and_merge_article(art.text)
+            if not article:
+                raise ValueError("Failed to extract article content from the URL.")
+            return headline, article
+        except Exception as e:
+            logger.exception("URL extraction failed: %s", e)
+            raise RuntimeError(f"Failed to extract from URL: {e}")
+
     # Combined workflow
     def process_single(
         self, headline: str, article: str, min_len: int = 50, max_len: int = 150
