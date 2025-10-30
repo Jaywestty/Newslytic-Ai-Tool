@@ -1,6 +1,0 @@
-services:
-  - type: web
-    name: newslytic-api
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: python -m uvicorn apis.Newslytic_app:app --host 0.0.0.0 --port $PORT
