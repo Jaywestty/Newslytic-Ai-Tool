@@ -1,11 +1,12 @@
 # utils/api_client.py
 import requests
+import streamlit as st
 from dotenv import load_dotenv
 import os
 
-# Load environment variables
-load_dotenv()
-API_URL = os.getenv("API_URL")
+
+# Read API URL from Streamlit secrets
+API_URL = st.secrets["API_URL"]
 
 def process_from_url(url: str, min_len=50, max_len=150):
     """Send article URL to backend API for processing"""
