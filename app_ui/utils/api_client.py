@@ -5,8 +5,12 @@ from dotenv import load_dotenv
 import os
 
 
-# Read API URL from Streamlit secrets
-API_URL = st.secrets["API_URL"]
+# Try to read from Streamlit secrets (for deployment), fallback to env var (for local)
+try:
+    API_URL = st.secrets["API_URL"]
+except (FileNotFoundError, KeyError):
+    API_URL = os.getenv("API_URL", "http://localhost:8000")  # Default to local FastAPI
+
 
 def process_from_url(url: str, min_len=50, max_len=150):
     """Send article URL to backend API for processing"""
