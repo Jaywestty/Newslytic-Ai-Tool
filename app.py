@@ -1,9 +1,17 @@
 # app.py
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Union, List
 import logging
+import os
+from dotenv import load_dotenv
 from src.newslytic_pipeline import NewslyticProcessor
+
+# Load environment variables
+load_dotenv()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +23,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Initialize Newslytic processor (loads both classifier and summarizer)
+# CORS Middleware - allows any frontend to call this API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize Newslytic processor (loads classifier and Groq client)
 try:
     processor = NewslyticProcessor()
     logger.info("✅ Newslytic processor initialized successfully")
@@ -95,9 +112,32 @@ async def health_check():
     return {
         "status": "healthy",
         "classifier_loaded": processor.classifier is not None,
-        "summarizer_loaded": processor.summarizer is not None,
-        "device": str(processor.device)
+        "groq_client_loaded": processor.groq_client is not None,
+        "using_api_summarization": True
     }
+
+
+@app.post("/analyze")
+async def analyze_news(request: NewsRequest):
+    """
+    Analyze news article(s) - classify headline and summarize body.
+    Supports both single article and batch processing.
+    """
+    try:
+        result = processor.process(
+            headlines=request.headline,
+            articles=request.body,
+            min_len=request.min_length,
+            max_len=request.max_length
+        )
+        return {
+            "results": result,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.exception(f"Error processing request: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/from_url")
 async def process_from_url(
