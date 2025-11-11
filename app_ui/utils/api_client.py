@@ -9,7 +9,7 @@ import os
 try:
     API_URL = st.secrets["API_URL"]
 except (FileNotFoundError, KeyError):
-    API_URL = os.getenv("API_URL", "http://localhost:8000")  # Default to local FastAPI
+    API_URL = os.getenv("API_URL")  # Default to local FastAPI
 
 
 def process_from_url(url: str, min_len=50, max_len=150):
