@@ -101,3 +101,28 @@ streamlit run app_ui.py
 Open your browser at http://localhost:8501 and start summarizing!
 
 ## 📁 Project Structure
+Newslytic Webapp
+│
+├── app_ui/
+│   ├── utils/
+│   │   ├── api_client.py
+│   │   └── __init__.py
+│   ├── app_ui.py
+│   └── requirements.txt
+│
+├── Datasets/
+│   └── CrimeVsNoCrimeArticles.csv
+│
+├── Model/
+│   └── classifier_model.pkl
+│
+├── Notebooks/
+│   └── news_crime_classification.ipynb
+│
+├── src/
+│   ├── classifier_train.py
+│   ├── classifier_test.py
+│   └── newslytic_pipeline.py
+│
+├── app.py
+└── requirements.txt
