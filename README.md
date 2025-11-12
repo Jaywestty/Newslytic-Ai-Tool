@@ -135,3 +135,29 @@ Newslytic Webapp
 ├── app.py
 └── requirements.txt
 ```
+
+## 💡 Challenges & Lessons
+- Memory constraints on free-tier hosting were solved by switching summarization to Groq GenAI.
+- Scraping restrictions from certain websites required retry logic and flexible URL parsing.
+- Learned to optimize text preprocessing for faster inference without losing context quality.
+
+## 💼 Business Use Cases
+- Market Intelligence: Summarize competitor or market news instantly.
+- Reputation Monitoring: Detect crisis-related mentions early.
+- Content Aggregation: Provide summarized feeds for media dashboards.
+- Research & Journalism: Automate the first-pass reading of multiple sources.
+
+## 🧭 Future Improvements
+- Multi-category classification (e.g., Politics, Finance, Sports).
+- Adaptive summary length (short / detailed modes).
+- Dashboard integration for analytics and trend visualization.
+- Batch article support for enterprise monitoring.
+
+## 🧠 Insights Gained
+Building Newslytic reinforced my understanding of end-to-end AI systems — from model training and API deployment to frontend integration and real-time inference optimization.
+
+It showcases how lightweight AI pipelines, when designed thoughtfully, can power truly useful tools.
+
+## 🌐 Try It Out
+Live Demo App: [Newslytic App]
+Medium Article	[How I Built a Real-Time AI That Summarizes Any Article]
