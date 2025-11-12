@@ -78,21 +78,28 @@ git clone [https://github.com/jaywestty/newslytic.git](https://github.com/jaywes
 cd newslytic
 ```
 **2. Create and activate a virtual environment**
-```python -m venv venv
+```bash
+python -m venv venv
 # On Windows
 venv\Scripts\activate
 # On macOS/Linux
 source venv/bin/activate
 ```
 **3. Install dependencies**
-```pip install -r requirements.txt```
+```bash
+pip install -r requirements.txt
+```
 
 **4. Add your environment variables**
 Create a .env file in the root directory and include:
-```GROQ_API_KEY=your_api_key_here```
+```bash
+GROQ_API_KEY=your_api_key_here
+```
 
 **5. Run the FastAPI Backend**
-```uvicorn app:app --reload```
+```bash
+uvicorn app:app --reload
+```
 
 **6. Launch the Streamlit Frontend**
 ```cd app_ui
@@ -101,6 +108,7 @@ streamlit run app_ui.py
 Open your browser at http://localhost:8501 and start summarizing!
 
 ## 📁 Project Structure
+```
 Newslytic Webapp
 │
 ├── app_ui/
@@ -126,3 +134,4 @@ Newslytic Webapp
 │
 ├── app.py
 └── requirements.txt
+```
