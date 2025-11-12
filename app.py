@@ -136,7 +136,14 @@ async def analyze_news(request: NewsRequest):
         }
     except Exception as e:
         logger.exception(f"Error processing request: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return a friendly JSON response instead of HTTPException
+        return {
+            "results": None,
+            "status": "error",
+            "message": "Failed to process the article(s). Please check the input or try another URL.",
+            "error_detail": str(e)
+        }
+
 
 
 @app.post("/from_url")
@@ -151,7 +158,10 @@ async def process_from_url(
     """
     try:
         if not url.strip():
-            raise HTTPException(status_code=400, detail="URL cannot be empty")
+            return {
+                "status": "error",
+                "message": "URL cannot be empty"
+            }
 
         headline, article = processor.extract_from_url(url)
         result = processor.process_single(headline, article, min_length, max_length)
@@ -167,7 +177,18 @@ async def process_from_url(
 
     except Exception as e:
         logger.exception(f"Error processing URL: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return a friendly JSON response for frontend
+        return {
+            "url": url,
+            "headline": None,
+            "predicted_class": None,
+            "confidence": None,
+            "summary": None,
+            "status": "error",
+            "message": "Failed to fetch or process the article. The site may be blocking access or the URL is invalid.",
+            "error_detail": str(e)
+        }
+
 
 
 
