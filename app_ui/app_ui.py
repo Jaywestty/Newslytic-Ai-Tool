@@ -49,23 +49,33 @@ if analyze:
                 # Using default length parameters inside process function
                 result = process_from_url(url, None, None)
 
-                st.markdown("---")
-                st.markdown("### 🗞 Headline")
-                st.markdown(f"**{result['headline']}**")
+                # --- ERROR CHECK ---
+                if result.get("status") == "error":
+                    # Display a user-friendly message with possible reasons
+                    st.warning(
+                        f"⚠️ Unable to process this article.\n\n"
+                        f"Reason: {result.get('message', 'Unknown error occurred.')}\n\n"
+                        "This may be because the site is blocking access, the URL is incomplete, "
+                        "or the page structure is unsupported. Please try a different news source."
+                    )
+                else:
+                    st.markdown("---")
+                    st.markdown("### 🗞 Headline")
+                    st.markdown(f"**{result['headline']}**")
 
-                st.markdown("### 🏷 Category")
-                st.markdown(
-                    f"<p style='background-color:#E8F6F3; color:#117864; padding:8px 15px; border-radius:8px; display:inline-block; font-weight:600;'>{result['predicted_class']}</p>",
-                    unsafe_allow_html=True
-                )
+                    st.markdown("### 🏷 Category")
+                    st.markdown(
+                        f"<p style='background-color:#E8F6F3; color:#117864; padding:8px 15px; border-radius:8px; display:inline-block; font-weight:600;'>{result['predicted_class']}</p>",
+                        unsafe_allow_html=True
+                    )
 
-                st.markdown("### 🧠 Summary")
-                st.markdown(f"{result['summary']}")
+                    st.markdown("### 🧠 Summary")
+                    st.markdown(f"{result['summary']}")
 
-                st.markdown(
-                    f"<p style='color:gray; font-size:0.9em;'>Source: <a href='{result['url']}' target='_blank'>{result['url']}</a></p>",
-                    unsafe_allow_html=True
-                )
+                    st.markdown(
+                        f"<p style='color:gray; font-size:0.9em;'>Source: <a href='{result['url']}' target='_blank'>{result['url']}</a></p>",
+                        unsafe_allow_html=True
+                    )
 
             except Exception as e:
                 st.error(f"❌ Error: {e}")
