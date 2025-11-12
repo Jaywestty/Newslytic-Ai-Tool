@@ -90,3 +90,11 @@ source venv/bin/activate
 **4. Add your environment variables**
 Create a .env file in the root directory and include:
 ```GROQ_API_KEY=your_api_key_here```
+
+**5. Run the FastAPI Backend**
+```uvicorn app:app --reload```
+
+**6. Launch the Streamlit Frontend**
+```cd app_ui
+streamlit run app_ui.py
+```
