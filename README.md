@@ -78,4 +78,10 @@ Follow these steps to run Newslytic locally:
 git clone [https://github.com/jaywestty/newslytic.git](https://github.com/jaywestty/newslytic.git)
 cd newslytic
 ```
-2. Create and activate a virtual environment
+**2. Create and activate a virtual environment**
+```python -m venv venv
+# On Windows
+venv\Scripts\activate
+# On macOS/Linux
+source venv/bin/activate
+```
