@@ -159,5 +159,7 @@ Building Newslytic reinforced my understanding of end-to-end AI systems — from
 It showcases how lightweight AI pipelines, when designed thoughtfully, can power truly useful tools.
 
 ## 🌐 Try It Out
-Live Demo App: [Newslytic App]
-Medium Article	[How I Built a Real-Time AI That Summarizes Any Article]
+Live Demo App: [Newslytic App](https://newslytic.streamlit.app/)
+
+Medium Article	[How I Built a Real-Time AI That Summarizes Any Article](https://medium.com/@juwonfadairo13/newslytic-how-i-built-a-real-time-ai-that-summarizes-any-article-1ba7281a8b7f)
+
