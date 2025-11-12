@@ -85,9 +85,8 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 **3. Install dependencies**
-```pip install -r requirements.txt
-```
+```pip install -r requirements.txt```
+
 **4. Add your environment variables**
 Create a .env file in the root directory and include:
-```GROQ_API_KEY=your_api_key_here
-```
+```GROQ_API_KEY=your_api_key_here```
