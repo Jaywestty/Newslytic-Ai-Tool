@@ -98,3 +98,6 @@ Create a .env file in the root directory and include:
 ```cd app_ui
 streamlit run app_ui.py
 ```
+Open your browser at http://localhost:8501 and start summarizing!
+
+## 📁 Project Structure
