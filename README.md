@@ -53,7 +53,6 @@ Originally inspired by the challenge of information overload, Newslytic helps in
 
 ### Deployment & Tools
 * **Render** (FastAPI backend hosting)
-* **Hugging Face Spaces** (model API hosting)
 * Git, VS Code, Virtual Environments
 
 ---
@@ -84,4 +83,11 @@ cd newslytic
 venv\Scripts\activate
 # On macOS/Linux
 source venv/bin/activate
+```
+**3. Install dependencies**
+```pip install -r requirements.txt
+```
+**4. Add your environment variables**
+Create a .env file in the root directory and include:
+```GROQ_API_KEY=your_api_key_here
 ```
