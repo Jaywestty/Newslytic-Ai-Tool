@@ -76,7 +76,7 @@ Follow these steps to run Newslytic locally:
 
 ```bash
 git clone [https://github.com/jaywestty/newslytic.git](https://github.com/jaywestty/newslytic.git)
-cd newslytic
+cd newslytic```
 
 ---
 
