@@ -72,12 +72,10 @@ Originally inspired by the challenge of information overload, Newslytic helps in
 
 Follow these steps to run Newslytic locally:
 
-### 1. Clone the repository
+**1. Clone the repository**
 
 ```bash
 git clone [https://github.com/jaywestty/newslytic.git](https://github.com/jaywestty/newslytic.git)
-cd newslytic```
-
----
-
-### 2. Create and activate a virtual environment
+cd newslytic
+```
+2. Create and activate a virtual environment
